@@ -1,0 +1,29 @@
+
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auth_db
+    ports:
+      - "3307:3306"
+
+  backend:
+    build: ./backend
+    container_name: backend-container
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+
+  frontend:
+    build: ./login-signup
+    container_name: frontend-container
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
