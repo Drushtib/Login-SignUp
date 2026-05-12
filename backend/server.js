@@ -9,13 +9,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ GLOBAL DB VARIABLE
+// Global DB variable
 let db;
 
-// MySQL Connection with retry
+// ================== CONNECT DB ==================
 function connectDB() {
   db = mysql.createConnection({
-    host: process.env.DB_HOST || "mysql-container",
+    host: process.env.DB_HOST || "mysql",
     user: "root",
     password: "root",
     database: "auth_db",
@@ -24,9 +24,31 @@ function connectDB() {
   db.connect((err) => {
     if (err) {
       console.log("❌ DB Error:", err);
-      setTimeout(connectDB, 5000); // retry
+
+      // Retry after 5 sec
+      setTimeout(connectDB, 5000);
+
     } else {
       console.log("✅ Connected to MySQL");
+
+      // ================== CREATE TABLE ==================
+      const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100),
+          mobile VARCHAR(15),
+          email VARCHAR(100) UNIQUE,
+          password VARCHAR(255)
+        )
+      `;
+
+      db.query(createTableQuery, (err, result) => {
+        if (err) {
+          console.log("❌ Table Error:", err);
+        } else {
+          console.log("✅ Users table ready");
+        }
+      });
     }
   });
 }
@@ -49,6 +71,7 @@ app.post("/signup", async (req, res) => {
       "INSERT INTO users (name, mobile, email, password) VALUES (?, ?, ?, ?)";
 
     db.query(sql, [name, mobile, email, hashedPassword], (err, result) => {
+
       if (err) {
         console.log("❌ SQL Error:", err);
         return res.status(500).send(err.message);
@@ -56,6 +79,7 @@ app.post("/signup", async (req, res) => {
 
       res.send("Signup successful");
     });
+
   } catch (err) {
     console.log("❌ Server Error:", err);
     res.status(500).send("Server error");
@@ -74,6 +98,7 @@ app.post("/login", (req, res) => {
   const sql = "SELECT * FROM users WHERE email = ?";
 
   db.query(sql, [email], async (err, result) => {
+
     if (err) {
       console.log("❌ DB Error:", err);
       return res.status(500).send("DB error");
